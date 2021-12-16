@@ -36,6 +36,12 @@ namespace Lab2
     {
         public string Str { get; protected set; }
         public DateTime Time { get; protected set; }
+        
+        public V1Data()
+        {
+            Str = default(string);
+            Time = default(DateTime);
+        }
 
         public V1Data(string s, DateTime t)
         {
@@ -96,6 +102,13 @@ namespace Lab2
     class V1DataList : V1Data, IEnumerable<DataItem>
     {
         public List<DataItem> List { get; private set; }
+
+        public V1DataList()
+        {
+            Str = default(string);
+            Time = default(DateTime);
+            List = new();
+        }
 
         public V1DataList(string s, DateTime t) : base(s, t)
         {
@@ -170,8 +183,10 @@ namespace Lab2
             bool res = true;
             try
             {
-                using (StreamWriter Stream = new(filename, true, System.Text.Encoding.Default))
+                using (StreamWriter Stream = new(File.Open(filename, FileMode.OpenOrCreate)))
                 {
+                    Stream.WriteLine(Str);
+                    Stream.WriteLine(Time.ToString());
                     int count = this.Count;
                     Stream.WriteLine(count);
                     for (int i = 0; i < count; i++)
@@ -179,7 +194,7 @@ namespace Lab2
                         Stream.WriteLine(List[i].X);
                         Stream.WriteLine(List[i].Y);
                         Stream.WriteLine(List[i].C.Real);
-                        Stream.WriteLine(List[i].C.Magnitude);
+                        Stream.WriteLine(List[i].C.Imaginary);
                     }
                 }
             }
@@ -194,24 +209,30 @@ namespace Lab2
             bool res = true;
             try
             {
-                using (StreamReader Stream = new(filename, System.Text.Encoding.Default))
+                using (StreamReader Stream = new(File.Open(filename, FileMode.OpenOrCreate)))
                 {
                     string line = Stream.ReadLine();
+                    Str = line;
+                    line = Stream.ReadLine();
+                    Time = DateTime.Parse(line);
+                    line = Stream.ReadLine();
                     int count = int.Parse(line);
-                    List = new();
+                    List = new(count);
                     for (int i = 0; i < count; i++)
                     {
-                        DataItem tmp = new();
-                        tmp.X = double.Parse(line = Stream.ReadLine());
-                        tmp.Y = double.Parse(line = Stream.ReadLine());
-                        tmp.C = new(double.Parse(line = Stream.ReadLine()), double.Parse(line = Stream.ReadLine()));
-                        List.Append(tmp);
+                        
+                        line = Stream.ReadLine();
+                        string line1 = Stream.ReadLine();
+                        string line2 = Stream.ReadLine();
+                        string line3 = Stream.ReadLine();
+                        List.Add(new(double.Parse(line), double.Parse(line1), new(double.Parse(line2), double.Parse(line3))));
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 res = false;
+                throw ex;
             }
             return res;
         }
@@ -265,6 +286,13 @@ namespace Lab2
         public double Dy { get; private set; }
         public FdblComplex F1;
         public System.Numerics.Complex[,] List { get; private set; }
+
+        public V1DataArray()
+        {
+            Str = default(string);
+            Time = default(DateTime);
+            List = new System.Numerics.Complex[0, 0];
+        }
 
         public V1DataArray(string s, DateTime t) : base(s, t)
         {
@@ -338,6 +366,8 @@ namespace Lab2
             {
                 using (BinaryWriter writer = new(File.Open(filename, FileMode.OpenOrCreate)))
                 {
+                    writer.Write(Str);
+                    writer.Write(Time.ToString());
                     writer.Write(Ox);
                     writer.Write(Oy);
                     writer.Write(Dx);
@@ -345,7 +375,7 @@ namespace Lab2
                     foreach (var i in List)
                     {
                         writer.Write(i.Real);
-                        writer.Write(i.Magnitude);
+                        writer.Write(i.Imaginary);
                     }
                 }
             }
@@ -363,6 +393,8 @@ namespace Lab2
 
                 using (BinaryReader reader = new(File.Open(filename, FileMode.OpenOrCreate)))
                 {
+                    Str = reader.ReadString();
+                    Time = DateTime.Parse(reader.ReadString());
                     Ox = reader.ReadInt32();
                     Oy = reader.ReadInt32();
                     Dx = reader.ReadDouble();
@@ -395,6 +427,7 @@ namespace Lab2
         {
             get => List[index];
         }
+
         public bool Contains(string ID)
         {
             if (List == null)
@@ -442,11 +475,11 @@ namespace Lab2
         {
             get
             {
-                var comb = from i in List from j in i select new { c = j };
+                var comb = from v1 in List where v1.Count != 0 select v1.AverageValue;
                 double Aver = double.NaN;
                 if (comb.Any())
                 {
-                    Aver = (from i in comb select i.c.C.Real).Average();
+                    Aver = comb.Average();
                 }
                 return Aver;
             }
@@ -455,21 +488,25 @@ namespace Lab2
         {
             get
             {
-                var comb1 = from i in List from j in i select new { c = j, len = Math.Abs(j.C.Real - this.AverageMeasure) };
-                double tmp = new();
-                if (comb1.Any())
+                var comb = (from v1 in List.OfType<V1DataArray>()
+                            where v1.Count != 0
+                            from Item in v1
+                            select new { c = Item, len = Math.Abs(Item.C.Magnitude - this.AverageMeasure) });
+                var comb1 = from v1 in List.OfType<V1DataList>()
+                            where v1.Count != 0
+                            from Item in v1.List
+                            select new { c = Item, len = Math.Abs(Item.C.Magnitude - this.AverageMeasure) };
+                comb = comb.Union(comb1);
+                if (comb.Any())
                 {
-                    tmp = (from i in comb1 select i.len).Max();
+                    double tmp = (from i in comb select i.len).Max();
+                    comb = comb.Where(x => (x.len == tmp));
+                    if (comb.Any())
+                    {
+                        return comb.First().c;
+                    }
                 }
-                var comb2 = comb1.Where(x => (x.len == tmp));
-                if (comb2.Any())
-                {
-                    return comb2.First().c;
-                }
-                else
-                {
-                    return null;
-                }
+                return null;
             }
         }
 
@@ -477,10 +514,31 @@ namespace Lab2
         {
             get
             {
-                var comb1 = from i in List from j in i select new { c = j.X };
-                var comb2 = comb1.Where(x => comb1.Count(i => (i.c == x.c)) > 1).Distinct();
-                var res = from i in comb2 select i.c;
-                return res;
+                var comb = (from v1 in List.OfType<V1DataList>()
+                            where v1.Count != 0
+                            select (V1DataList)v1).Union(
+                            from v1 in List.OfType<V1DataArray>()
+                            where v1.Count != 0
+                            select (V1DataList)v1).Distinct();
+                var res = (from v1 in comb
+                           from v2 in comb
+                           where v1.Str != v2.Str
+                           from Item1 in v1.List
+                           from Item2 in v2.List
+                           where Item1.X == Item2.X && Item1.Y == Item2.Y
+                           select Item1.X).Distinct();
+                /*var res = (from v1 in comb
+                           from v2 in comb
+                           where v1.Str != v2.Str
+                           from Item1 in v1.List
+                           from Item2 in v2.List
+                           where Item1.X == Item2.X
+                           select Item1.X).Distinct();*/
+                if (res.Any())
+                {
+                    return res;
+                }
+                return null;
             }
         }
     }

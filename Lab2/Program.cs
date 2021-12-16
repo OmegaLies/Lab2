@@ -13,9 +13,9 @@ namespace Lab2
             string format = "F2";
 
             string filename = System.IO.Path.Combine(Environment.CurrentDirectory, "DataArray.dat");
-            V1DataArray Array1 = new("Array one", DateTime.Now, 3, 4, 0.7, 0.4, Func);
+            V1DataArray Array1 = new("Array one", DateTime.Now, 5, 1, 0.7, 0.4, Func);
             Array1.SaveBinary(filename);
-            V1DataArray Array2 = new("Array two", DateTime.Now);
+            V1DataArray Array2 = new();
             Array2.LoadBinary(filename);
             Console.WriteLine(Array1.ToLongString(format));
             Console.WriteLine(Array2.ToLongString(format));
@@ -23,7 +23,7 @@ namespace Lab2
             filename = System.IO.Path.Combine(Environment.CurrentDirectory, "DataList.txt");
             V1DataList List1 = Array1;
             List1.SaveAsText(filename);
-            V1DataList List2 = new("List two", DateTime.Now);
+            V1DataList List2 = new();
             List2.LoadAsText(filename);
             Console.WriteLine(List1.ToLongString(format));
             Console.WriteLine(List2.ToLongString(format));
@@ -32,10 +32,12 @@ namespace Lab2
         static void testCollection()
         {
             string format = "F2";
-            V1DataArray Array1 = new("Array one", DateTime.Now, 3, 4, 0.7, 0.4, Func);
+            V1DataArray Array1 = new("Array one", DateTime.Now, 5, 1, 0.7, 0.4, Func);
             V1DataArray Array2 = new("Array two", DateTime.Now);
             V1DataList List1 = new("List one", DateTime.Now);
             List1.AddDefaults(6, Func);
+            List1.Add(new DataItem(0.0, 0.0, new Complex(1, 2)));
+            List1.Add(new DataItem(0.7, 0.4, new Complex(1, 2)));
             V1DataList List2 = new("List two", DateTime.Now);
             V1MainCollection Collection = new();
             Collection.Add(Array1);
@@ -50,17 +52,24 @@ namespace Lab2
             Console.WriteLine("Average measure " + aver);
             if (Max != null)
             {
-                Console.WriteLine("Element with max difference from average measure " + Max);
+                Console.WriteLine("Element with max difference from average measure:" + "\n" +((DataItem)Max).ToLongString(format));
             }
             else
             {
-                Console.WriteLine("Element with max difference from average measure isn't exist");
+                Console.WriteLine("Element with max difference from average measure doesn't exist");
             }
-            Console.WriteLine("X of elements, that are used at least twice");
-            foreach (var i in uniq)
+            Console.WriteLine("X of dots, that are used at least twice in  different elements of collection: ");
+            if (uniq != null) {
+                foreach (var i in uniq)
+                {
+                    Console.Write(i.ToString(format) + " ");
+                }
+            }
+            else
             {
-                Console.Write(i + " ");
+                Console.WriteLine("Dots, that are used at least twice in the different elements of collection, doesn't exist");
             }
+            
         }
 
         static void Main()
