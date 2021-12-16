@@ -402,7 +402,7 @@ namespace Lab2
                     List = new System.Numerics.Complex[Ox, Oy];
                     for (int i = 0; i < Ox; i++)
                     {
-                        for (int j = 0; j < Ox; j++)
+                        for (int j = 0; j < Oy; j++)
                         {
                             double R = reader.ReadDouble();
                             double Im = reader.ReadDouble();
