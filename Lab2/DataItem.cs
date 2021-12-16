@@ -183,7 +183,7 @@ namespace Lab2
             bool res = true;
             try
             {
-                using (StreamWriter Stream = new(File.Open(filename, FileMode.OpenOrCreate)))
+                using (StreamWriter Stream = new(File.Open(filename, FileMode.OpenOrCreate), System.Text.Encoding.Default))
                 {
                     Stream.WriteLine(Str);
                     Stream.WriteLine(Time.ToString());
@@ -209,7 +209,7 @@ namespace Lab2
             bool res = true;
             try
             {
-                using (StreamReader Stream = new(File.Open(filename, FileMode.OpenOrCreate)))
+                using (StreamReader Stream = new(File.Open(filename, FileMode.OpenOrCreate), System.Text.Encoding.Default))
                 {
                     string line = Stream.ReadLine();
                     Str = line;
